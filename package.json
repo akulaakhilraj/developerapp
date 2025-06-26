@@ -1,0 +1,14 @@
+{
+  "name": "devtinderapp",
+  "version": "1.0.0",
+  "description": "Dev Tinder Application",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Akhil Raj A",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
