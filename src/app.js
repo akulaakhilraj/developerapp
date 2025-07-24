@@ -3,6 +3,8 @@ const connectDB=require("./config/database");
 const User=require("./models/user");
 const user = require("./models/user");
 //const connec=require("./config/database")
+const bcrypt=require("bcrypt");
+const { validatorSignUpData }=require("./utils/validator");
 const app= express();
 const PORT=9000;
 
@@ -10,9 +12,20 @@ const PORT=9000;
 app.use(express.json())
 
 app.post("/signup", async(req,res)=>{
-    console.log("Sign up doc ",req.body)
-    const user=new User(req.body)
+    //console.log("Sign up doc ",req.body)
+   // const user=new User(req.body)
 try{
+    validatorSignUpData(req);
+    const {firstName, lastName,emailId, password}=req.body;
+    const passwordHash=await bcrypt.hash(password,10);
+    console.log("passwordhash",passwordHash);
+    //Creating an instance of a new user before save information
+    const user= new User({
+    firstName, 
+    lastName,
+    emailId,
+    password:passwordHash
+})
     await user.save()
     console.log('USER', user);
     res.status(200).send("User data is succesfully done")

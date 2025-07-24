@@ -30,10 +30,10 @@ const userSchema= new mongoose.Schema({
         type:String,
         min:18,
     },
-    
+
     PhoneNo: {
     type:String,
-    required:true,
+  //  required:true,
     validate(value) {
     if (!validator.isMobilePhone(value)) {
       throw new Error("Need a valid Phone Number");
