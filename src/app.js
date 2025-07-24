@@ -4,6 +4,7 @@ const User=require("./models/user");
 const user = require("./models/user");
 //const connec=require("./config/database")
 const bcrypt=require("bcrypt");
+const validator=require("validator");
 const { validatorSignUpData }=require("./utils/validator");
 const app= express();
 const PORT=9000;
@@ -13,7 +14,9 @@ app.use(express.json())
 
 app.post("/signup", async(req,res)=>{
     //console.log("Sign up doc ",req.body)
-   // const user=new User(req.body)
+   // const user=new User(req.body) 
+
+   //need to check whether password is encrypted or not 
 try{
     validatorSignUpData(req);
     const {firstName, lastName,emailId, password}=req.body;
@@ -35,6 +38,34 @@ catch(err){
     res.status(400).send({ error: err.message });
 }
 })
+
+//Login Check whether the login id and password same or not
+
+app.post("/login", async(req,res)=>{
+    try{
+    const {emailId, password}=req.body;
+    if(!validator.isEmail(emailId)){
+        throw new Error("Email id is an error")
+    }
+    const user= await User.findOne({emailId:emailId})
+    if(!user){
+        throw new Error("User id not found");
+    } 
+    const passwordIsValid= await bcrypt.compare(password, user.password);
+    if(passwordIsValid){
+        res.status(200).send("User Login Succesfull");
+    }
+    else{
+        throw new Error("Invalid Login Credentails")
+    }
+    }
+    catch(err){
+        console.log("Error:",err.message);
+       return res.status(404).json({ error: "Internal server error" });
+    }
+})
+
+
 
 app.get("/feed", async(req,res)=>{
     const UserEmailId=req.body.emailId;
