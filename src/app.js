@@ -2,27 +2,23 @@ const express=require("express");
 const connectDB=require("./config/database");
 const User=require("./models/user");
 const user = require("./models/user");
-//const connec=require("./config/database")
 const bcrypt=require("bcrypt");
 const validator=require("validator");
+const cookieParser=require("cookie-parser");
 const { validatorSignUpData }=require("./utils/validator");
+const jwt = require("jsonwebtoken");
 const app= express();
 const PORT=9000;
 
 //Which connect req body fields
 app.use(express.json())
+app.use(cookieParser());
 
-app.post("/signup", async(req,res)=>{
-    //console.log("Sign up doc ",req.body)
-   // const user=new User(req.body) 
-
-   //need to check whether password is encrypted or not 
+app.post("/signup", async(req,res)=>{ 
 try{
     validatorSignUpData(req);
     const {firstName, lastName,emailId, password}=req.body;
     const passwordHash=await bcrypt.hash(password,10);
-    console.log("passwordhash",passwordHash);
-    //Creating an instance of a new user before save information
     const user= new User({
     firstName, 
     lastName,
@@ -34,12 +30,12 @@ try{
     res.status(200).send("User data is succesfully done")
 }
 catch(err){
-   // console.error("Validation Error:", err.message);
     res.status(400).send({ error: err.message });
 }
 })
 
 //Login Check whether the login id and password same or not
+
 
 app.post("/login", async(req,res)=>{
     try{
@@ -51,8 +47,12 @@ app.post("/login", async(req,res)=>{
     if(!user){
         throw new Error("User id not found");
     } 
-    const passwordIsValid= await bcrypt.compare(password, user.password);
+    const passwordIsValid=await bcrypt.compare(password, user.password);
     if(passwordIsValid){
+        const token=await jwt.sign({_id:user._id}, "DEV@1236$")
+        console.log(token);
+        res.cookie("token", token); ///pass to the user 
+       // res.send("Reading a cookies")
         res.status(200).send("User Login Succesfull");
     }
     else{
@@ -63,6 +63,28 @@ app.post("/login", async(req,res)=>{
         console.log("Error:",err.message);
        return res.status(404).json({ error: "Internal server error" });
     }
+})
+
+app.get("/profile", async(req,res)=>{
+   try{
+    const cookies=req.cookies;
+    const {token}=cookies
+    if(!token){
+        throw new Error ("Token is not a valid one");
+    }
+    const decodedMessage=await jwt.verify(token, "DEV@1236$")
+    const{_id}=decodedMessage;
+    const user=User.findById(_id);
+    if(!user){
+        throw new Error("User is not the valid id ")
+    }
+    console.log("user logged with "+_id);
+    return res.status(200).send(user)
+   }
+   catch(err){
+    res.status(500).send(err.message)
+   }
+    
 })
 
 
@@ -79,7 +101,7 @@ app.get("/feed", async(req,res)=>{
         }
     }
     catch(err){
-        res.status(404).send("User not found ")
+        res.status(404).send("User not found")
     }
 })
 
@@ -102,7 +124,7 @@ app.patch("/user/:userId", async(req,res)=>{
 
        const user= await User.findByIdAndUpdate({_id:userId}, data, { 
         returnDocument:"after",
-       runValidators:true
+       runValidators:true //To update the data
        })
         res.send("Successfully updated")
     }
@@ -135,8 +157,8 @@ connectDB().then(()=>{
         console.log(`Server is listening on the number ${PORT}`);
     })
    
-}).catch(()=>{
-    console.log("Database connection is not connected")
+}).catch((err)=>{
+    console.log("Database connection is not connected", err.message);
 })
 
 
