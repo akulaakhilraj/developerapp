@@ -1,12 +1,12 @@
 const express=require("express");
 const connectDB=require("./config/database");
 const User=require("./models/user");
-const user = require("./models/user");
 const bcrypt=require("bcrypt");
 const validator=require("validator");
 const cookieParser=require("cookie-parser");
 const { validatorSignUpData }=require("./utils/validator");
 const jwt = require("jsonwebtoken");
+const authUser=require("./middleware/auth")
 const app= express();
 const PORT=9000;
 
@@ -36,55 +36,36 @@ catch(err){
 
 //Login Check whether the login id and password same or not
 
-
 app.post("/login", async(req,res)=>{
-    try{
-    const {emailId, password}=req.body;
-    if(!validator.isEmail(emailId)){
-        throw new Error("Email id is an error")
-    }
+   try{
+    const {emailId,password}=req.body
     const user= await User.findOne({emailId:emailId})
     if(!user){
-        throw new Error("User id not found");
-    } 
-    const passwordIsValid=await bcrypt.compare(password, user.password);
-    if(passwordIsValid){
-        const token=await jwt.sign({_id:user._id}, "DEV@1236$")
-        console.log(token);
-        res.cookie("token", token); ///pass to the user 
-       // res.send("Reading a cookies")
-        res.status(200).send("User Login Succesfull");
+        throw new Error("Invalid Login Creditanls")
     }
-    else{
-        throw new Error("Invalid Login Credentails")
+    const ispasswordValid= await user.passwordValid(password)
+    if(ispasswordValid){
+        const token =await user.getJWT()
+        res.cookie("token",token)
+        res.send("Login Successful")
+    }else{
+        throw new Error("Incorrect Login creditals")
     }
-    }
-    catch(err){
-        console.log("Error:",err.message);
-       return res.status(404).json({ error: "Internal server error" });
-    }
+   }
+   catch(error){
+    res.status(400).send({ error: error.message });
+   }
 })
 
-app.get("/profile", async(req,res)=>{
-   try{
-    const cookies=req.cookies;
-    const {token}=cookies
-    if(!token){
-        throw new Error ("Token is not a valid one");
+
+app.get("/profile",authUser, async(req,res)=>{
+    try{
+        const user=req.user
+        res.send(user)
     }
-    const decodedMessage=await jwt.verify(token, "DEV@1236$")
-    const{_id}=decodedMessage;
-    const user=User.findById(_id);
-    if(!user){
-        throw new Error("User is not the valid id ")
+    catch(err){
+        throw new Error("Error", err.message);
     }
-    console.log("user logged with "+_id);
-    return res.status(200).send(user)
-   }
-   catch(err){
-    res.status(500).send(err.message)
-   }
-    
 })
 
 
